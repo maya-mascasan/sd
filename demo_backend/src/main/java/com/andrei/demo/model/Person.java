@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Getter // Use these two instead of @Data!
+@Getter
 @Setter
 @Table(name = "person")
 public class Person {
@@ -31,6 +31,7 @@ public class Person {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
+
     @Column(name = "role", nullable = false)
     private Role role;
 
@@ -41,6 +42,8 @@ public class Person {
             inverseJoinColumns = @JoinColumn(name = "course_id")
     )
     @JsonIgnoreProperties("person")
+    @com.fasterxml.jackson.annotation.JsonProperty("courses")
+
     private Set<Course> enrolledCourses = new HashSet<>();
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)

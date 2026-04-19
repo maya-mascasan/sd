@@ -10,11 +10,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.andrei.demo.repository.CourseRepository;
 
 @Service
 @AllArgsConstructor
 public class DepartmentService {
     private final DepartmentRepository departmentRepository;
+    private final CourseRepository courseRepository;
 
     public List<Department> getDepartments() {
         return departmentRepository.findAll();
@@ -63,7 +65,13 @@ public class DepartmentService {
         return departmentRepository.save(existing);
     }
 
-    public void deleteDepartment(UUID id) {
+    public void deleteDepartment(UUID id) throws ValidationException {
+        boolean hasCourses = courseRepository.existsByDepartmentId(id);
+
+        if (hasCourses) {
+            throw new ValidationException("Cannot delete this department because it currently has courses assigned to it.");
+        }
+
         departmentRepository.deleteById(id);
     }
 }

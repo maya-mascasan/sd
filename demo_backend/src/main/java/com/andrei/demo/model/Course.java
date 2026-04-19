@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Getter // Use these two instead of @Data!
+@Getter
 @Setter
 @Table(name = "course")
 public class Course {
@@ -28,6 +28,10 @@ public class Course {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "professor_id")
+    private Person professor;
 
     @JsonIgnore
     @ManyToMany(mappedBy = "enrolledCourses", fetch = FetchType.LAZY)

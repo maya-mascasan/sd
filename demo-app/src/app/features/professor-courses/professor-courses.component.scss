@@ -1,0 +1,41 @@
+.empty-portal-container {
+  padding: 40px 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.portal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+
+  h1 { margin: 0; color: #3f51b5; font-size: 1.8rem; }
+  p { margin: 5px 0 0; color: #666; }
+}
+
+.logout-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+
+  &:hover {
+    background-color: #d32f2f;
+  }
+}
+
+.placeholder-message {
+  margin-top: 100px;
+  text-align: center;
+  color: #888;
+
+  hr { border: 0; border-top: 1px solid #eee; margin-bottom: 30px; }
+  .sub-text { font-style: italic; font-size: 0.9rem; margin-top: 10px; }
+}

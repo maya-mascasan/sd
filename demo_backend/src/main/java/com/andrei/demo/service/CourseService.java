@@ -6,6 +6,7 @@ import com.andrei.demo.model.CourseCreateDTO;
 import com.andrei.demo.model.Department;
 import com.andrei.demo.repository.CourseRepository;
 import com.andrei.demo.repository.DepartmentRepository;
+import com.andrei.demo.repository.PersonRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 

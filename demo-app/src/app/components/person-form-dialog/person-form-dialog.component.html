@@ -23,7 +23,33 @@
         <mat-error>Age must be less than 200.</mat-error>
       }
     </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Assign Courses</mat-label>
+      <mat-select formControlName="enrolledCourseIds" multiple>
+        @if (allCourses().length === 0) {
+          <mat-option disabled>No courses available</mat-option>
+        }
 
+        @for (course of allCourses(); track course.id) {
+          <mat-option [value]="course.id">
+            {{ course.title }} <small>({{ course.credits }} pts)</small>
+          </mat-option>
+        }
+      </mat-select>
+
+      <mat-hint>Select one or more courses to assign</mat-hint>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>User Role</mat-label>
+      <mat-select formControlName="role">
+        @for (role of roles; track role) {
+          <mat-option [value]="role">{{ role | titlecase }}</mat-option>
+        }
+      </mat-select>
+      @if (!form.controls.role.untouched && form.controls.role.invalid) {
+        <mat-error>Role is required</mat-error>
+      }
+    </mat-form-field>
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Email</mat-label>
       <input matInput type="email" formControlName="email" autocomplete="email" />

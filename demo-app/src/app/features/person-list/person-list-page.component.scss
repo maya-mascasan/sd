@@ -66,3 +66,39 @@
 .delete-btn {
   color: #c62828;
 }
+
+
+.page-toolbar {
+  .toolbar-title {
+    font-weight: 500;
+  }
+
+  .toolbar-spacer {
+    flex: 1 1 auto;
+  }
+}
+  .role-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background-color: #e0e0e0;
+    color: #333;
+
+    &.admin {
+      background-color: #fce4ec;
+      color: #c2185b;
+    }
+
+    &.professor {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    &.student {
+      background-color: #e3f2fd;
+      color: #1565c0;
+    }
+  }
+

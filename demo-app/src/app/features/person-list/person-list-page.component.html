@@ -1,5 +1,26 @@
-<mat-toolbar color="primary">
-  <span>Person Manager</span>
+<mat-toolbar color="primary" class="page-toolbar">
+  <div class="brand">
+    <span class="toolbar-title">Admin Hub</span>
+  </div>
+
+  <div class="nav-links">
+    <button mat-button routerLink="/admin/people" routerLinkActive="active-link">
+      <mat-icon>groups</mat-icon> Users
+    </button>
+    <button mat-button routerLink="/admin/courses" routerLinkActive="active-link">
+      <mat-icon>library_books</mat-icon> Courses
+    </button>
+    <button mat-button routerLink="/admin/departments" routerLinkActive="active-link">
+      <mat-icon>account_balance</mat-icon> Departments
+    </button>
+  </div>
+
+  <span class="toolbar-spacer"></span>
+
+  <button mat-button class="logout-pill" (click)="logout()" aria-label="Sign out">
+    <mat-icon aria-hidden="true">logout</mat-icon>
+    Logout
+  </button>
 </mat-toolbar>
 <main class="content">
   <header class="page-header">
@@ -37,6 +58,14 @@
     [class.is-busy]="isLoading()"
   >
     <table mat-table [dataSource]="persons()" aria-label="Persons table">
+      <ng-container matColumnDef="role">
+        <th mat-header-cell *matHeaderCellDef scope="col">Role</th>
+        <td mat-cell *matCellDef="let person">
+    <span class="role-badge" [class]="person.role">
+      {{ person.role }}
+    </span>
+        </td>
+      </ng-container>
       <ng-container matColumnDef="name">
         <th mat-header-cell *matHeaderCellDef scope="col">Name</th>
         <td mat-cell *matCellDef="let person">{{ person.name }}</td>
@@ -51,6 +80,14 @@
         <th mat-header-cell *matHeaderCellDef scope="col">Email</th>
         <td mat-cell *matCellDef="let person">{{ person.email }}</td>
       </ng-container>
+      <ng-container matColumnDef="courses">
+      <th mat-header-cell *matHeaderCellDef scope="col">Courses</th>
+      <td mat-cell *matCellDef="let person">
+    <span [class.text-muted]="!person.enrolledCourses?.length">
+      {{ getCourseNames(person) }}
+    </span>
+      </td>
+    </ng-container>
 
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef scope="col">Actions</th>

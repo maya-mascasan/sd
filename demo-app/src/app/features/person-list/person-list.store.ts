@@ -25,8 +25,6 @@ export class PersonListStore {
   }
 
 
-
-
   load(): void {
     this.errorMsg.set('');
     this.beginRequest();
@@ -66,9 +64,16 @@ export class PersonListStore {
     const existing = this.persons().find((p) => p.id === id);
     if (!existing) return;
 
-    const payload: CreatePersonDto = { ...dto, password: existing.password };
+    const payload: CreatePersonDto = {
+      name: dto.name ?? existing.name,
+      age: dto.age ?? existing.age,
+      email: dto.email ?? existing.email,
+      role: dto.role ?? existing.role,
+      password: existing.password,
+      enrolledCourseIds: dto.enrolledCourseIds ?? []
+    };
 
-    this.errorMsg.set('');;
+    this.errorMsg.set('');
     this.beginRequest();
     this.personService
       .update(id, payload)
@@ -80,14 +85,12 @@ export class PersonListStore {
           ),
         error: (err: HttpErrorResponse) => {
           this.hasError.set(true);
-
           const errorData = err.error as Record<string, string>;
-
           const textReal =
-            errorData?.['details'] || (errorData?.['errors'] ? Object.values(errorData['errors'])[0] : null) ||
+            errorData?.['details'] ||
+            (errorData?.['errors'] ? Object.values(errorData['errors'])[0] : null) ||
             Object.values(errorData || {})[0] ||
             'An unexpected error occurred!';
-
           this.errorMsg.set(textReal);
         }
       });

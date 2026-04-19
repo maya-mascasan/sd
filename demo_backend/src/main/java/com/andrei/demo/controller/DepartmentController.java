@@ -45,7 +45,7 @@ public class DepartmentController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteDepartment(@PathVariable UUID id) {
+    public void deleteDepartment(@PathVariable UUID id) throws ValidationException{
         departmentService.deleteDepartment(id);
     }
 }

@@ -10,29 +10,27 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-
+import { TitleCasePipe } from '@angular/common';
+import { MatSelectModule } from '@angular/material/select';
+import { MatOptionModule } from '@angular/material/core';
+import { Course } from '../../models/course.model';
+import {Person} from '../../models/person.model';
+import {CourseService} from '../../services/course.service';
 export interface PersonFormDialogData {
   title: string;
   submitLabel?: string;
   showPasswordField?: boolean;
-  initialValue?: PersonFormInitialValue | null;
+  initialValue?: Partial<Person> & { enrolledCourseIds?: string[] };
 }
 
-export interface PersonFormValue {
+export interface PersonFormDialogResult {
   name: string;
   age: number;
   email: string;
   password?: string;
+  role: string;
+  enrolledCourseIds: string[];
 }
-
-export interface PersonFormInitialValue {
-  name: string;
-  age: number;
-  email: string;
-}
-
-export type PersonFormDialogResult = PersonFormValue | undefined;
-
 @Component({
   selector: 'app-person-form-dialog',
   imports: [
@@ -41,35 +39,49 @@ export type PersonFormDialogResult = PersonFormValue | undefined;
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatSelectModule,
+    MatOptionModule,
+    TitleCasePipe
   ],
   templateUrl: './person-form-dialog.component.html',
   styleUrl: './person-form-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true
 })
 export class PersonFormDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly courseService = inject(CourseService);
   private readonly dialogRef = inject(MatDialogRef<PersonFormDialogComponent>);
   protected readonly data = inject<PersonFormDialogData>(MAT_DIALOG_DATA);
 
-  protected readonly isPasswordVisible = signal(false);
+  protected allCourses = signal<Course[]>([]);
 
-  protected readonly form = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    age: [0, [Validators.required, Validators.min(18), Validators.max(200)]],
-    email: ['', [Validators.required]],
-    password: ['', []],
+  protected readonly isPasswordVisible = signal(false);
+  protected readonly roles = ['admin', 'professor', 'student'];
+  protected readonly form = this.fb.group({
+    name: [this.data.initialValue?.name ?? '', [Validators.required]],
+    age: [this.data.initialValue?.age ?? 18, [Validators.required, Validators.min(0)]],
+    email: [this.data.initialValue?.email ?? '', [Validators.required, Validators.email]],
+    password: [this.data.initialValue?.password ?? '', this.data.showPasswordField ? [Validators.required] : []],
+    role: [this.data.initialValue?.role ?? 'student', [Validators.required]],
+    enrolledCourseIds: [this.data.initialValue?.enrolledCourseIds ?? [] as string[]]
   });
 
+
   ngOnInit(): void {
+    console.log('Dialog Initialized!');
+    this.courseService.getCourses().subscribe({
+      next: (data: Course[]) => {
+        console.log('Courses fetched for dropdown:', data);
+        this.allCourses.set(data);
+      },
+      error: (err: unknown) => {
+        console.error('Failed to load courses for dropdown', err);
+      }
+    });
+
     if (this.data.initialValue) {
       this.form.patchValue(this.data.initialValue);
-    }
-
-    if (this.data.showPasswordField) {
-      this.form.controls.password.setValidators([
-        Validators.required,
-      ]);
-      this.form.controls.password.updateValueAndValidity();
     }
   }
 
@@ -83,14 +95,22 @@ export class PersonFormDialogComponent implements OnInit {
       return;
     }
 
-    const { name, age, email, password } = this.form.getRawValue();
-    const result: PersonFormValue = this.data.showPasswordField
-      ? { name, age, email, password }
-      : { name, age, email };
+    const raw = this.form.getRawValue();
+
+    const result: PersonFormDialogResult = {
+      name: raw.name as string,
+      age: raw.age as number,
+      email: raw.email as string,
+      role: raw.role as string,
+      enrolledCourseIds: raw.enrolledCourseIds as string[] ?? []
+    };
+
+    if (this.data.showPasswordField) {
+      result.password = raw.password as string;
+    }
 
     this.dialogRef.close(result);
   }
-
   protected cancel(): void {
     this.dialogRef.close(undefined);
   }

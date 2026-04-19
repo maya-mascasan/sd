@@ -8,6 +8,7 @@ import { Person } from '../../models/person.model';
   imports: [MatDialogModule, MatButtonModule],
   templateUrl: './confirm-delete-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true
 })
 export class ConfirmDeleteDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<ConfirmDeleteDialogComponent>);

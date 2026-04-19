@@ -1,0 +1,25 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content class="dialog-content">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" id="deptForm">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Department Name</mat-label>
+      <input matInput formControlName="name" placeholder="e.g. Computer Science" cdkFocusInitial>
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>Department name is required</mat-error>
+      }
+      @if (form.controls.name.hasError('minlength')) {
+        <mat-error>Name must be at least 2 characters</mat-error>
+      }
+    </mat-form-field>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="onCancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="submit" form="deptForm" [disabled]="form.invalid">
+    {{ data.submitLabel }}
+  </button>
+</mat-dialog-actions>
