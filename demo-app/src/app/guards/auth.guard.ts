@@ -20,14 +20,13 @@ export const guestGuard: CanActivateFn = () => {
   }
   return true;
 };
-
 export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
   return () => {
     const loginStore = inject(LoginStore);
     const router = inject(Router);
 
-    let role = loginStore.role();
     const isAuth = loginStore.isAuthenticated();
+    let role = loginStore.role();
 
     if (!role) {
       const stored = sessionStorage.getItem('demo-app-auth');
@@ -41,18 +40,17 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
       }
     }
 
-    console.error('🛡️ RoleGuard Reject!', {
-      foundRole: role,
-      requiredRoles: allowedRoles,
-      isAuth: isAuth
-    });
+    const currentRole = role?.toLowerCase().trim();
+    const normalizedAllowed = allowedRoles.map(r => r.toLowerCase().trim());
 
-    if (isAuth && role && allowedRoles.includes(role)) {
+    if (isAuth && currentRole && normalizedAllowed.includes(currentRole)) {
       return true;
     }
 
-    console.error('Error: /error');
+    if (!isAuth) {
+      return router.createUrlTree(['/login']);
+    }
+
     return router.createUrlTree(['/error']);
   };
-
 };

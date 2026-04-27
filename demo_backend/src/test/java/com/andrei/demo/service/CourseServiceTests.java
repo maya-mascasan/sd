@@ -43,17 +43,21 @@ class CourseServiceTests {
 
     @Test
     void testGetCourses() {
+        // given:
         List<Course> courses = List.of(new Course(), new Course());
 
+        // when:
         when(courseRepository.findAll()).thenReturn(courses);
         List<Course> result = courseService.getCourses();
 
+        // then:
         assertEquals(2, result.size());
         verify(courseRepository, times(1)).findAll();
     }
 
     @Test
     void testAddCourse_Success() throws ValidationException {
+        // given:
         UUID deptId = UUID.randomUUID();
         CourseCreateDTO dto = new CourseCreateDTO();
         dto.setTitle("Software Design");
@@ -63,33 +67,39 @@ class CourseServiceTests {
         Department dept = new Department();
         dept.setId(deptId);
 
-        Course savedCourse = new Course();
-        savedCourse.setTitle("Software Design");
-        savedCourse.setDepartment(dept);
-
         when(departmentRepository.findById(deptId)).thenReturn(Optional.of(dept));
-        when(courseRepository.save(any(Course.class))).thenReturn(savedCourse);
+        // Updated to use the dynamic answer pattern
+        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // when:
         Course result = courseService.addCourse(dto);
 
+        // then:
         assertNotNull(result);
         assertEquals("Software Design", result.getTitle());
+        assertEquals(5, result.getCredits());
+        assertEquals(dept, result.getDepartment());
         verify(departmentRepository, times(1)).findById(deptId);
         verify(courseRepository, times(1)).save(any(Course.class));
     }
 
     @Test
     void testAddCourse_DepartmentNotFound() {
+        // given:
         UUID deptId = UUID.randomUUID();
         CourseCreateDTO dto = new CourseCreateDTO();
         dto.setDepartmentId(deptId);
 
+        // when:
         when(departmentRepository.findById(deptId)).thenReturn(Optional.empty());
 
+        // then:
         assertThrows(ValidationException.class, () -> courseService.addCourse(dto));
     }
 
     @Test
     void testUpdateCourse_Success() throws ValidationException {
+        // given:
         UUID courseId = UUID.randomUUID();
         UUID deptId = UUID.randomUUID();
 
@@ -101,39 +111,43 @@ class CourseServiceTests {
         Course existingCourse = new Course();
         existingCourse.setId(courseId);
         existingCourse.setTitle("Basic SD");
+        existingCourse.setCredits(3);
 
         Department dept = new Department();
         dept.setId(deptId);
 
-        Course updatedCourse = new Course();
-        updatedCourse.setId(courseId);
-        updatedCourse.setTitle("Advanced SD");
-        updatedCourse.setCredits(6);
-        updatedCourse.setDepartment(dept);
-
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(existingCourse));
         when(departmentRepository.findById(deptId)).thenReturn(Optional.of(dept));
-        when(courseRepository.save(any(Course.class))).thenReturn(updatedCourse);
+        // Updated to use the dynamic answer pattern
+        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
+        // when:
         Course result = courseService.updateCourse(courseId, dto);
 
+        // then:
         assertEquals("Advanced SD", result.getTitle());
         assertEquals(6, result.getCredits());
+        assertEquals(dept, result.getDepartment());
         verify(courseRepository, times(1)).findById(courseId);
         verify(courseRepository, times(1)).save(any(Course.class));
     }
 
     @Test
     void testUpdateCourse_CourseNotFound() {
+        // given:
         UUID courseId = UUID.randomUUID();
         CourseCreateDTO dto = new CourseCreateDTO();
 
+        // when:
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
+        // then:
         assertThrows(IllegalStateException.class, () -> courseService.updateCourse(courseId, dto));
     }
+
     @Test
     void testPatchCourse_UpdateCredits() throws ValidationException {
+        // given:
         UUID courseId = UUID.randomUUID();
         Course existing = new Course();
         existing.setId(courseId);
@@ -143,19 +157,27 @@ class CourseServiceTests {
         updates.put("credits", 6);
 
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(existing));
-        when(courseRepository.save(any(Course.class))).thenAnswer(i -> i.getArguments()[0]);
+        // Standardized to use the exact same dynamic answer pattern
+        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // when:
         Course result = courseService.patchCourse(courseId, updates);
 
+        // then:
         assertEquals(6, result.getCredits());
         verify(courseRepository, times(1)).save(existing);
     }
+
     @Test
     void testDeleteCourse() {
+        // given:
         UUID uuid = UUID.randomUUID();
 
+        // when:
         doNothing().when(courseRepository).deleteById(uuid);
         courseService.deleteCourse(uuid);
 
+        // then:
         verify(courseRepository, times(1)).deleteById(uuid);
     }
 }

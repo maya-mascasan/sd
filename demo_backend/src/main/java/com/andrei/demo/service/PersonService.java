@@ -9,6 +9,7 @@ import com.andrei.demo.repository.CourseRepository;
 import com.andrei.demo.repository.PersonRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.andrei.demo.util.PasswordUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class PersonService {
     private final PersonRepository personRepository;
     private final CourseRepository courseRepository;
+    private final PasswordUtil passwordUtil;
 
     public List<Person> getPeople() {
         return personRepository.findAll();
@@ -35,7 +37,8 @@ public class PersonService {
         person.setName(personDTO.getName());
         person.setAge(personDTO.getAge());
         person.setEmail(personDTO.getEmail());
-        person.setPassword(personDTO.getPassword());
+        String hashedPassword = passwordUtil.hashPassword(personDTO.getPassword());
+        person.setPassword(hashedPassword);
 
         if (personDTO.getRole() != null) {
             person.setRole(personDTO.getRole());
@@ -63,7 +66,8 @@ public class PersonService {
         existingPerson.setName(person.getName());
         existingPerson.setAge(person.getAge());
         existingPerson.setEmail(person.getEmail());
-        existingPerson.setPassword(person.getPassword());
+        String hashedPassword = passwordUtil.hashPassword(person.getPassword());
+        existingPerson.setPassword(hashedPassword);
         if (person.getRole() != null) {
             existingPerson.setRole(person.getRole());
         }
