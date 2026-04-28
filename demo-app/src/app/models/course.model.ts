@@ -5,6 +5,9 @@ export interface Course {
   title: string;
   credits: number;
   department: Department;
+  // Add these fields to match your backend response
+  students?: { id: string; email: string; name?: string }[];
+  enrolledStudents?: { id: string; email: string; name?: string }[];
 }
 
 export interface CourseCreateDTO {

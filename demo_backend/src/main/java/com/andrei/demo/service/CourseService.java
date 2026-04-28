@@ -85,4 +85,8 @@ public class CourseService {
     public void deleteCourse(UUID id) {
         courseRepository.deleteById(id);
     }
+
+    public List<Course> getCoursesByProfessor(UUID professorId) {
+        return courseRepository.findByProfessorId(professorId);
+    }
 }

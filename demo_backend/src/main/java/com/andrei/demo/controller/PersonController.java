@@ -58,4 +58,16 @@ public class PersonController {
     public void deletePerson(@PathVariable UUID uuid) {
         personService.deletePerson(uuid);
     }
+
+    @PostMapping("/{personId}/enroll/{courseId}")
+    public Person enrollCourse(@PathVariable UUID personId, @PathVariable UUID courseId)
+            throws ValidationException {
+        return personService.enrollCourse(personId, courseId);
+    }
+
+    @DeleteMapping("/{personId}/enroll/{courseId}")
+    public Person unenrollCourse(@PathVariable UUID personId, @PathVariable UUID courseId)
+            throws ValidationException {
+        return personService.unenrollCourse(personId, courseId);
+    }
 }

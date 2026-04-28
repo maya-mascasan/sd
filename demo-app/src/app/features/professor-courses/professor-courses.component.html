@@ -1,13 +1,135 @@
-<div class="empty-portal-container">
+<div class="portal">
   <header class="portal-header">
-    <div class="user-info">
-      <h1>Professor Management</h1>
-      <p>Welcome back, <strong>{{ loginStore.name() }}</strong></p>
+    <div class="header-left">
+      <div class="avatar prof">{{ (loginStore.name() ?? 'P')[0].toUpperCase() }}</div>
+      <div>
+        <h1 class="portal-title">Professor Portal</h1>
+        <p class="portal-subtitle">Welcome, <strong>{{ loginStore.name() }}</strong></p>
+      </div>
     </div>
-    <button mat-button type="button" (click)="logout()" aria-label="Sign out">
-      <mat-icon aria-hidden="true">logout</mat-icon>
-      Logout
+    <button mat-stroked-button (click)="logout()">
+      <mat-icon>logout</mat-icon> Logout
     </button>
   </header>
 
+  <div class="portal-body">
+
+    <!-- COLUMN 1: My Courses -->
+    <aside class="col-courses">
+      <h2 class="col-label">My Courses</h2>
+      @if (isLoading()) { <p class="hint">Loading...</p> }
+      @if (!isLoading() && myCourses().length === 0) {
+        <p class="hint">No courses assigned yet. Ask an admin to assign courses to you.</p>
+      }
+      @for (course of myCourses(); track course.id) {
+        <button
+          class="course-card"
+          [class.active]="selectedCourse()?.id === course.id"
+          (click)="selectCourse(course)"
+        >
+          <span class="course-title">{{ course.title }}</span>
+          <span class="course-meta">{{ course.credits }} credits · {{ course.department?.name }}</span>
+        </button>
+      }
+    </aside>
+
+    <!-- COLUMN 2: Assignments -->
+    <section class="col-assignments" [class.disabled]="!selectedCourse()">
+      @if (!selectedCourse()) {
+        <div class="col-empty">
+          <mat-icon>menu_book</mat-icon>
+          <p>Select a course</p>
+        </div>
+      } @else {
+        <div class="col-header">
+          <h2 class="col-label">Assignments</h2>
+          <button mat-icon-button (click)="showNewAssignmentForm.set(!showNewAssignmentForm())">
+            <mat-icon>{{ showNewAssignmentForm() ? 'close' : 'add' }}</mat-icon>
+          </button>
+        </div>
+
+        @if (showNewAssignmentForm()) {
+          <form class="new-assignment-form" [formGroup]="assignmentForm" (ngSubmit)="createAssignment()">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Title</mat-label>
+              <input matInput formControlName="title" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" rows="3"></textarea>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Deadline</mat-label>
+              <input matInput type="date" formControlName="deadline" />
+            </mat-form-field>
+            <div style="display:flex;gap:0.5rem">
+              <button mat-flat-button color="primary" type="submit">Create</button>
+              <button mat-button type="button" (click)="showNewAssignmentForm.set(false)">Cancel</button>
+            </div>
+          </form>
+        }
+
+        @for (a of assignments(); track a.id) {
+          <button
+            class="assignment-item"
+            [class.active]="selectedAssignment()?.id === a.id"
+            (click)="selectAssignment(a)"
+          >
+            <div class="assignment-item-info">
+              <span class="assignment-item-title">{{ a.title }}</span>
+              <span class="assignment-item-date">Due {{ a.deadline | date:'mediumDate' }}</span>
+            </div>
+            <button mat-icon-button color="warn" (click)="deleteAssignment(a); $event.stopPropagation()">
+              <mat-icon style="font-size:18px;height:18px;width:18px;">delete</mat-icon>
+            </button>
+          </button>
+        }
+
+        @if (assignments().length === 0 && !showNewAssignmentForm()) {
+          <p class="hint">No assignments yet. Click + to create one.</p>
+        }
+      }
+    </section>
+
+    <!-- COLUMN 3: Submissions -->
+    <section class="col-submissions" [class.disabled]="!selectedAssignment()">
+      @if (!selectedAssignment()) {
+        <div class="col-empty">
+          <mat-icon>grading</mat-icon>
+          <p>Select an assignment</p>
+        </div>
+      } @else {
+        <h2 class="col-label">Submissions — {{ selectedAssignment()!.title }}</h2>
+        @if (submissions().length === 0) {
+          <p class="hint">No submissions yet.</p>
+        }
+        @for (sub of submissions(); track sub.id) {
+          <div class="submission-card">
+            <div class="sub-header">
+              <div class="student-avatar">{{ (sub.student?.name ?? 'S')[0].toUpperCase() }}</div>
+              <div>
+                <p class="sub-student">{{ sub.student?.name ?? 'Unknown' }}</p>
+                <p class="sub-date">{{ sub.submissionDate | date:'mediumDate' }}</p>
+              </div>
+              @if (sub.grade !== null) {
+                <span class="grade-chip graded">{{ sub.grade }}/100</span>
+              } @else {
+                <span class="grade-chip pending">Ungraded</span>
+              }
+            </div>
+            <div class="sub-content">{{ sub.content }}</div>
+            <button
+              mat-stroked-button
+              class="grade-btn"
+              (click)="openGradeDialog(sub)"
+            >
+              <mat-icon>star_border</mat-icon>
+              {{ sub.grade !== null ? 'Update Grade' : 'Grade' }}
+            </button>
+          </div>
+        }
+      }
+    </section>
+
+  </div>
 </div>

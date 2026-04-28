@@ -122,4 +122,18 @@ public class PersonService {
         return personRepository.findById(uuid).orElseThrow(
                 () -> new IllegalStateException("Person with id " + uuid + " not found"));
     }
+
+    public Person enrollCourse(UUID personId, UUID courseId) throws ValidationException {
+        Person person = getPersonById(personId);
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ValidationException("Course not found."));
+        person.getEnrolledCourses().add(course);
+        return personRepository.save(person);
+    }
+
+    public Person unenrollCourse(UUID personId, UUID courseId) throws ValidationException {
+        Person person = getPersonById(personId);
+        person.getEnrolledCourses().removeIf(c -> c.getId().equals(courseId));
+        return personRepository.save(person);
+    }
 }

@@ -1,15 +1,23 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, finalize, Observable, of, tap } from 'rxjs';
-import { LoginRequest, LoginResponse, LoginService } from '../../services/login.service';
+import { LoginRequest, LoginService } from '../../services/login.service';
 import { Router } from '@angular/router'; // <--- Add this
 
 interface AuthSnapshot {
 
   role: string | null;
   token: string;
+  userId: string | null;
 }
 
+export interface LoginResponse {
+  success: boolean;
+  role: string | null;
+  errorMessage: string | null;
+  token: string | null;
+  userId: string | null; // This stops the red squiggle!
+}
 const STORAGE_KEY = 'demo-app-auth';
 
 @Injectable({ providedIn: 'root' })
@@ -21,6 +29,7 @@ export class LoginStore {
   readonly token = signal<string | null>(null);
   readonly isAuthenticated = computed(() => this.token() !== null);
   readonly role = signal<string | null>(null);
+  readonly userId = signal<string | null>(null);
 
 
   // ✅ Add these two signals!
@@ -35,15 +44,14 @@ export class LoginStore {
     this.errorMessage.set(null);
     this.isSubmitting.set(true);
 
-    return this.loginService.login(request).pipe(
-      tap((response) => { if (response.success) {
-      this.email.set(request.email);
-      // If your backend doesn't return the name yet, we can default it
-      // to the part before the '@' for now:
-      this.name.set(request.email.split('@')[0]);
-    }
-    this.applyResponse(response);
-  }),
+    // Add 'as any as Observable<LoginResponse>' here
+    return (this.loginService.login(request) as unknown as Observable<LoginResponse>).pipe(      tap((response) => {
+        if (response.success) {
+          this.email.set(request.email);
+          this.name.set(request.email.split('@')[0]);
+        }
+        this.applyResponse(response);
+      }),
       catchError((error: unknown) => {
         const response = this.normalizeError(error);
         this.applyResponse(response);
@@ -61,9 +69,15 @@ export class LoginStore {
     if (response.success && response.token) {
       this.token.set(response.token);
       this.role.set(response.role);
+
+// We cast the whole right side to 'string | null' to satisfy the signal
+      this.userId.set(response.userId ?? null);
       this.errorMessage.set(null);
       this.persistAuthState();
 
+      if (response.token) {
+        sessionStorage.setItem('jwt-token', response.token);
+      }
       // Inside login.store.ts -> applyResponse
       const role = response.role?.toLowerCase();
 
@@ -91,6 +105,7 @@ export class LoginStore {
           success: maybeError.success,
           role: maybeError.role ?? null,
           token: maybeError.token ?? null,
+          userId: null,
           errorMessage:
             maybeError.errorMessage ??
             (error.status === 401
@@ -104,6 +119,7 @@ export class LoginStore {
       success: false,
       role: null,
       token: null,
+      userId: null,
       errorMessage: 'Unable to complete login. Please try again.',
     };
   }
@@ -121,7 +137,9 @@ export class LoginStore {
         return;
       }
 
-      this.token.set(snapshot.token);      this.role.set(snapshot.role ?? null);
+      this.token.set(snapshot.token);
+      this.role.set(snapshot.role ?? null);
+      this.userId.set(snapshot.userId ?? null);
     } catch {
       this.clearSession();
     }
@@ -136,6 +154,7 @@ export class LoginStore {
     const snapshot: AuthSnapshot = {
       role: this.role(),
       token,
+      userId: this.userId(),
     };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
   }
@@ -145,5 +164,6 @@ export class LoginStore {
     this.role.set(null);
     this.errorMessage.set(errorMessage);
     sessionStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem('jwt-token');
   }
 }

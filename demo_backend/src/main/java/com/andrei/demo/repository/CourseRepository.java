@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface CourseRepository extends JpaRepository<Course, UUID> {
     List<Course> findByDepartmentId(UUID departmentId);
     boolean existsByDepartmentId(UUID departmentId);
+    List<Course> findByProfessorId(UUID professorId);
 }

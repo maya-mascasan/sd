@@ -24,5 +24,15 @@ export class PersonService {
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${API_URL}/${id}`);
   }
+  enroll(personId: string, courseId: string): Observable<Person> {
+    return this.http.post<Person>(`${API_URL}/${personId}/enroll/${courseId}`, {});
+  }
+
+  unenroll(personId: string, courseId: string): Observable<Person> {
+    return this.http.delete<Person>(`${API_URL}/${personId}/enroll/${courseId}`);
+  }
+  getByEmail(email: string): Observable<Person> {
+    return this.http.get<Person>(`${API_URL}/email/${email}`);
+  }
 }
 

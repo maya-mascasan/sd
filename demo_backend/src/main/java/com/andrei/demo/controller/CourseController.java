@@ -48,4 +48,9 @@ public class CourseController {
     public void deleteCourse(@PathVariable UUID id) {
         courseService.deleteCourse(id);
     }
+
+    @GetMapping("/professor/{professorId}")
+    public List<Course> getCoursesByProfessor(@PathVariable UUID professorId) {
+        return courseService.getCoursesByProfessor(professorId);
+    }
 }

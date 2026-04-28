@@ -1,13 +1,133 @@
-<div class="empty-portal-container">
+<div class="portal">
   <header class="portal-header">
-    <div class="user-info">
-      <h1>Student Management</h1>
-      <p>Welcome back, <strong>{{ loginStore.name() }}</strong></p>
+    <div class="header-left">
+      <div class="avatar">{{ (loginStore.name() ?? 'S')[0].toUpperCase() }}</div>
+      <div>
+        <h1 class="portal-title">Student Portal</h1>
+        <p class="portal-subtitle">Welcome back, <strong>{{ loginStore.name() }}</strong></p>
+      </div>
     </div>
-    <button mat-button type="button" (click)="logout()" aria-label="Sign out">
-      <mat-icon aria-hidden="true">logout</mat-icon>
-      Logout
+    <button mat-stroked-button (click)="logout()">
+      <mat-icon>logout</mat-icon> Logout
     </button>
   </header>
 
+  <div class="portal-body">
+
+    <!-- LEFT: My Courses -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <h2 class="section-label">My Courses</h2>
+        @if (isLoading()) {
+          <p class="hint">Loading...</p>
+        }
+        @if (!isLoading() && enrolledCourses().length === 0) {
+          <p class="hint">You have no enrolled courses yet.</p>
+        }
+        @for (course of enrolledCourses(); track course.id) {
+          <button
+            class="course-card"
+            [class.active]="selectedCourse()?.id === course.id"
+            (click)="selectCourse(course)"
+          >
+            <span class="course-title">{{ course.title }}</span>
+            <span class="course-meta">{{ course.credits }} credits · {{ course.department?.name }}</span>
+          </button>
+        }
+      </div>
+
+      <div class="sidebar-section">
+        <h2 class="section-label">Browse Courses</h2>
+        <input
+          class="search-input"
+          placeholder="Search by title or department..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+        />
+        <div class="available-list">
+          @for (course of availableCourses(); track course.id) {
+            <div class="available-card">
+              <div>
+                <span class="course-title">{{ course.title }}</span>
+                <span class="course-meta">{{ course.credits }} credits · {{ course.department?.name }}</span>
+              </div>
+              <button
+                mat-flat-button
+                class="enroll-btn"
+                (click)="enroll(course)"
+                [disabled]="enrolling() === course.id"
+              >
+                {{ enrolling() === course.id ? '...' : 'Enroll' }}
+              </button>
+            </div>
+          }
+          @if (availableCourses().length === 0 && !isLoading()) {
+            <p class="hint">No courses available to join.</p>
+          }
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT: Course Detail -->
+    <main class="detail-panel">
+      @if (!selectedCourse()) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">school</mat-icon>
+          <p>Select a course on the left to see its assignments.</p>
+        </div>
+      } @else {
+        <div class="detail-header">
+          <div>
+            <h2 class="detail-title">{{ selectedCourse()!.title }}</h2>
+            <span class="detail-meta">{{ selectedCourse()!.department?.name }} · {{ selectedCourse()!.credits }} credits</span>
+          </div>
+          <button mat-stroked-button color="warn" (click)="unenroll(selectedCourse()!)">
+            <mat-icon>exit_to_app</mat-icon> Unenroll
+          </button>
+        </div>
+
+        <h3 class="assignments-heading">Assignments</h3>
+
+        @if (assignments().length === 0) {
+          <div class="no-assignments">
+            <mat-icon>assignment</mat-icon>
+            <p>No assignments yet for this course.</p>
+          </div>
+        }
+
+        <div class="assignments-grid">
+          @for (a of assignments(); track a.id) {
+            @let submission = getSubmissionForAssignment(a.id);
+            <div class="assignment-card" [class.submitted]="!!submission">
+              <div class="assignment-top">
+                <div class="assignment-status" [class.done]="!!submission">
+                  <mat-icon>{{ submission ? 'check_circle' : 'pending' }}</mat-icon>
+                </div>
+                <div class="assignment-info">
+                  <p class="assignment-title">{{ a.title }}</p>
+                  <p class="assignment-desc">{{ a.description }}</p>
+                </div>
+              </div>
+              <div class="assignment-bottom">
+                <span class="deadline">
+                  <mat-icon style="font-size:14px;height:14px;width:14px;">schedule</mat-icon>
+                  Due {{ a.deadline | date:'mediumDate' }}
+                </span>
+                @if (submission) {
+                  <div class="grade-badge" [class.graded]="submission.grade !== null">
+                    {{ submission.grade !== null ? 'Grade: ' + submission.grade : 'Submitted — awaiting grade' }}
+                  </div>
+                } @else {
+                  <button mat-flat-button class="submit-btn" (click)="openSubmitDialog(a)">
+                    <mat-icon>upload</mat-icon> Submit
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </main>
+
+  </div>
 </div>

@@ -47,7 +47,9 @@ class SecurityServiceTests {
         String email = "john@example.com";
         String password = "password";
         String token = "token-123";
+        java.util.UUID mockId = java.util.UUID.randomUUID(); // Create a fake ID
         Person person = new Person();
+        person.setId(mockId);
         person.setEmail(email);
         person.setPassword("hashed-password");
         person.setRole(Role.admin);
@@ -58,8 +60,9 @@ class SecurityServiceTests {
         LoginResponse result = securityService.login(email, password);
 
         assertTrue(result.success());
-        assertEquals("ADMIN", result.role());
+        assertEquals("admin", result.role());
         assertEquals(token, result.token());
+        assertEquals(mockId.toString(), result.userId());
         verify(personRepository, times(1)).findByEmail(email);
         verify(passwordUtil, times(1)).checkPassword(password, person.getPassword());
         verify(jwtUtil, times(1)).createToken(person);

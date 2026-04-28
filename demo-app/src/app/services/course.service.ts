@@ -23,4 +23,7 @@ export class CourseService {
   update(id: string, courseDto: CourseCreateDTO): Observable<Course> {
     return this.http.put<Course>(`${this.apiUrl}/${id}`, courseDto);
   }
+  getCoursesByProfessor(professorId: string): Observable<Course[]> {
+    return this.http.get<Course[]>(`${this.apiUrl}/professor/${professorId}`);
+  }
 }
