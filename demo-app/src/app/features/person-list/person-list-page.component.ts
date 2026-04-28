@@ -10,12 +10,11 @@ import { PersonFormDialogComponent, PersonFormDialogData, PersonFormDialogResult
 import { PersonListStore } from './person-list.store';
 import { LoginStore } from '../login/login.store';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
-import {JsonPipe} from '@angular/common';
 import {CreatePersonDto, Person, PersonJson, UpdatePersonDto} from '../../models/person.model';
 import {Course} from '../../models/course.model';
 @Component({
   selector: 'app-person-list-page',
-  imports: [MatTableModule, MatButtonModule, MatIconModule, MatDialogModule, MatToolbar, RouterLinkActive, RouterLink, JsonPipe],
+  imports: [MatTableModule, MatButtonModule, MatIconModule, MatDialogModule, MatToolbar, RouterLinkActive, RouterLink],
   templateUrl: './person-list-page.component.html',
   styleUrl: './person-list-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

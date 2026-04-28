@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Component
 @AllArgsConstructor
+@Slf4j
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
@@ -23,29 +25,64 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+                                    FilterChain filterChain) throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+
+        // 1. Handle CORS Preflight immediately
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return;
+        }
+
+        // 2. Only skip the filter for endpoints that literally cannot have a token
+        // We removed the "/person" POST skip so that Admin-created persons are authenticated!
+        if ("/login".equals(path) || path.startsWith("/password-reset")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String authHeader = request.getHeader("Authorization");
+
+        // If no token is provided, just continue.
+        // SecurityConfig will decide if the path requires authentication or not.
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(7);
-        if (!jwtService.isTokenValid(token)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+        try {
+            if (!jwtService.isTokenValid(token)) {
+                log.warn("Token is expired or invalid for path: {}", path);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String email = jwtService.extractEmail(token);
+            String role = jwtService.extractRole(token);
+
+            // Standardize role to "ROLE_ADMIN", "ROLE_STUDENT", etc.
+            // This is critical for .hasRole("ADMIN") to work!
+            String formattedRole = role.startsWith("ROLE_") ?
+                    role.toUpperCase() :
+                    "ROLE_" + role.toUpperCase();
+
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                    email,
+                    null,
+                    List.of(new SimpleGrantedAuthority(formattedRole))
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            log.info("Successfully authenticated user {} with role {}", email, formattedRole);
+
+        } catch (Exception e) {
+            log.error("JWT Authentication failed: {}", e.getMessage());
+            // We don't block the chain here; we let SecurityConfig handle the 403
         }
 
-        String email = jwtService.extractEmail(token);
-        String role = jwtService.extractRole(token);
-
-        var auth = new UsernamePasswordAuthenticationToken(
-                email, null,
-                List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
-        );
-        SecurityContextHolder.getContext().setAuthentication(auth);
         filterChain.doFilter(request, response);
     }
 }

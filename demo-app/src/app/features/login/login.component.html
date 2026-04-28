@@ -38,16 +38,19 @@
         <p class="error-message" role="alert" aria-live="assertive">{{ errorMessage() }}</p>
       }
 
-      <button mat-flat-button color="primary" type="submit" [disabled]="isSubmitting()">
+      <button mat-flat-button color="primary" type="submit" [disabled]="isSubmitting()" class="full-width">
         @if (isSubmitting()) {
           Signing in...
         } @else {
           Sign in
         }
       </button>
-      <a routerLink="/forgot-password" style="font-size: 0.875rem; text-align: center;">
-        Forgot your password?
-      </a>
+
+      <div class="login-footer">
+        <a routerLink="/forgot-password" class="forgot-link">
+          Forgot your password?
+        </a>
+      </div>
     </form>
   </mat-card>
 </main>

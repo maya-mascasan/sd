@@ -1,11 +1,8 @@
 package com.andrei.demo.controller;
 
+import com.andrei.demo.config.JwtService;
 import com.andrei.demo.model.Department;
-import com.andrei.demo.model.Person;
-import com.andrei.demo.model.Role;
 import com.andrei.demo.repository.DepartmentRepository;
-import com.andrei.demo.repository.PersonRepository;
-import com.andrei.demo.util.JwtUtil;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,8 +16,6 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -39,30 +34,21 @@ public class DepartmentControllerIntegrationTests {
     @Autowired
     private DepartmentRepository departmentRepository;
 
-    // Added PersonRepository to save a dummy user for the token
     @Autowired
-    private PersonRepository personRepository;
-
-    // Added JwtUtil to generate the token
-    @Autowired
-    private JwtUtil jwtUtil;
+    private JwtService jwtService;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    // Added authToken variable
-    private String authToken;
+    // JWT token for an admin user — used in all requests
+    private String adminToken;
 
     @BeforeEach
     void setUp() throws Exception {
         departmentRepository.deleteAll();
         departmentRepository.flush();
-
-        // Clean person repo to prevent data collisions
-        personRepository.deleteAll();
-        personRepository.flush();
-
         seedDatabase();
-        initializeAuthToken(); // Initialize the token before tests run
+
+        adminToken = jwtService.generateToken("test-admin@example.com", "admin");
     }
 
     private void seedDatabase() throws Exception {
@@ -71,27 +57,10 @@ public class DepartmentControllerIntegrationTests {
         departmentRepository.saveAll(depts);
     }
 
-    private void initializeAuthToken() {
-        // Create and save a dummy person specifically to generate a valid JWT
-        Person authPerson = new Person();
-        authPerson.setName("Test Admin");
-        authPerson.setEmail("admin@example.com");
-        authPerson.setPassword("Securepass123!@#");
-        authPerson.setAge(30);
-
-        authPerson.setRole(com.andrei.demo.model.Role.admin); // Notice it's lowercase 'admin' based on your enum!
-        authPerson = personRepository.save(authPerson);
-
-
-        // Generate the token
-        authToken = jwtUtil.createToken(authPerson);
-    }
-
     @Test
     void testGetDepartments() throws Exception {
         mockMvc.perform(get("/department")
-                        // Injected Authorization header
-                        .header("Authorization", "Bearer " + authToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[*].name",
@@ -103,8 +72,7 @@ public class DepartmentControllerIntegrationTests {
         String validDeptJson = loadFixture("valid_department.json");
 
         mockMvc.perform(post("/department")
-                        // Injected Authorization header
-                        .header("Authorization", "Bearer " + authToken)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validDeptJson))
                 .andExpect(status().isOk())
@@ -113,15 +81,23 @@ public class DepartmentControllerIntegrationTests {
     }
 
     @Test
-    void testAddDepartment_InvalidPayload() throws Exception {
+    void testAddDepartment_InvalidPayload_DuplicateName() throws Exception {
+        // "Mathematics" already exists in the seed data — adding it again
+        // triggers the duplicate-name validation in DepartmentService,
+        // which throws ValidationException -> 400 Bad Request.
         String invalidDeptJson = loadFixture("invalid_department.json");
 
         mockMvc.perform(post("/department")
-                        // Injected Authorization header
-                        .header("Authorization", "Bearer " + authToken)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidDeptJson))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetDepartments_WithoutToken_Unauthorized() throws Exception {
+        mockMvc.perform(get("/department"))
+                .andExpect(status().isForbidden());
     }
 
     private String loadFixture(String fileName) throws IOException {

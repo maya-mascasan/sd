@@ -31,7 +31,7 @@
             (click)="selectCourse(course)"
           >
             <span class="course-title">{{ course.title }}</span>
-            <span class="course-meta">{{ course.credits }} credits · {{ course.department?.name }}</span>
+            <span class="course-meta">{{ course.credits }} credits · {{ course.department.name }}</span>
           </button>
         }
       </div>
@@ -49,7 +49,7 @@
             <div class="available-card">
               <div>
                 <span class="course-title">{{ course.title }}</span>
-                <span class="course-meta">{{ course.credits }} credits · {{ course.department?.name }}</span>
+                <span class="course-meta">{{ course.credits }} credits · {{ course.department.name }}</span>
               </div>
               <button
                 mat-flat-button
@@ -79,7 +79,7 @@
         <div class="detail-header">
           <div>
             <h2 class="detail-title">{{ selectedCourse()!.title }}</h2>
-            <span class="detail-meta">{{ selectedCourse()!.department?.name }} · {{ selectedCourse()!.credits }} credits</span>
+            <span class="detail-meta">{{ selectedCourse()!.department.name }} · {{ selectedCourse()!.credits }} credits</span>
           </div>
           <button mat-stroked-button color="warn" (click)="unenroll(selectedCourse()!)">
             <mat-icon>exit_to_app</mat-icon> Unenroll

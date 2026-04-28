@@ -21,22 +21,24 @@ public class SecurityService {
         Optional<Person> maybePerson = personRepository.findByEmail(email);
 
         if (maybePerson.isEmpty()) {
-            // This uses your single-argument constructor: LoginResponse(String errorMessage)
             return new LoginResponse("Person with email " + email + " not found");
         }
 
         Person person = maybePerson.get();
         if (passwordEncoder.matches(password, person.getPassword())) {
-            String roleName = (person.getRole() != null) ? person.getRole().name() : "admin";
+            // Ensure we get the name of the role (admin, student, etc.)
+            // If role is null, we default to "student" (safer than admin)
+            String roleName = (person.getRole() != null) ? person.getRole().name() : "student";
+
+            // Generate token using the unified JwtService
             String token = jwtService.generateToken(email, roleName);
 
-            // Extract the ID as a String
+            // Extract the ID
             String userId = person.getId() != null ? person.getId().toString() : null;
 
-            // This uses your three-argument constructor: LoginResponse(String role, String token, String userId)
+            // Return the successful response
             return new LoginResponse(roleName, token, userId);
         } else {
-            // Using the error constructor again
             return new LoginResponse("Incorrect password");
         }
     }

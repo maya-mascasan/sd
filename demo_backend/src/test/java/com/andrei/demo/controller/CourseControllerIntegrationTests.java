@@ -1,13 +1,10 @@
 package com.andrei.demo.controller;
 
+import com.andrei.demo.config.JwtService;
 import com.andrei.demo.model.Course;
 import com.andrei.demo.model.Department;
-import com.andrei.demo.model.Person;
-import com.andrei.demo.model.Role;
 import com.andrei.demo.repository.CourseRepository;
 import com.andrei.demo.repository.DepartmentRepository;
-import com.andrei.demo.repository.PersonRepository;
-import com.andrei.demo.util.JwtUtil;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,39 +40,30 @@ public class CourseControllerIntegrationTests {
     @Autowired
     private DepartmentRepository departmentRepository;
 
-    // Added PersonRepository to save a dummy user for the token
     @Autowired
-    private PersonRepository personRepository;
-
-    // Added JwtUtil to generate the token
-    @Autowired
-    private JwtUtil jwtUtil;
+    private JwtService jwtService;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private UUID existingDeptId;
 
-    // Added authToken variable
-    private String authToken;
+    // JWT token for an admin user — used in all requests
+    private String adminToken;
 
     @BeforeEach
     void setUp() throws Exception {
         courseRepository.deleteAll();
         departmentRepository.deleteAll();
-
-        // Clean person repo to prevent data collisions
-        personRepository.deleteAll();
-
         courseRepository.flush();
         departmentRepository.flush();
-        personRepository.flush();
 
         Department dept = new Department();
         dept.setName("Computer Science");
         existingDeptId = departmentRepository.save(dept).getId();
 
         seedDatabase();
-        initializeAuthToken(); // Initialize the token before tests run
+
+        adminToken = jwtService.generateToken("test-admin@example.com", "admin");
     }
 
     private void seedDatabase() throws Exception {
@@ -87,27 +75,10 @@ public class CourseControllerIntegrationTests {
         courseRepository.saveAll(courses);
     }
 
-    private void initializeAuthToken() {
-        // Create and save a dummy person specifically to generate a valid JWT
-        Person authPerson = new Person();
-        authPerson.setName("Test Admin");
-        authPerson.setEmail("admin@example.com");
-        authPerson.setPassword("Securepass123!@#");
-        authPerson.setAge(30);
-
-        authPerson.setRole(com.andrei.demo.model.Role.admin); // Notice it's lowercase 'admin' based on your enum!
-
-        authPerson = personRepository.save(authPerson);
-
-        // Generate the token
-        authToken = jwtUtil.createToken(authPerson);
-    }
-
     @Test
     void testGetCourses() throws Exception {
         mockMvc.perform(get("/course")
-                        // Injected Authorization header
-                        .header("Authorization", "Bearer " + authToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[*].title",
@@ -117,12 +88,10 @@ public class CourseControllerIntegrationTests {
     @Test
     void testAddCourse_ValidPayload() throws Exception {
         String rawJson = loadFixture("valid_course.json");
-
         String processedJson = rawJson.replace("id", existingDeptId.toString());
 
         mockMvc.perform(post("/course")
-                        // Injected Authorization header
-                        .header("Authorization", "Bearer " + authToken)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(processedJson))
                 .andExpect(status().isOk())
@@ -136,14 +105,19 @@ public class CourseControllerIntegrationTests {
         String invalidCourseJson = loadFixture("invalid_course.json");
 
         mockMvc.perform(post("/course")
-                        // Injected Authorization header
-                        .header("Authorization", "Bearer " + authToken)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidCourseJson))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Course title is required"))
                 .andExpect(jsonPath("$.credits").value("Course needs to have at least 1 credit"))
                 .andExpect(jsonPath("$.departmentId").value("Department ID is required"));
+    }
+
+    @Test
+    void testGetCourses_WithoutToken_Unauthorized() throws Exception {
+        mockMvc.perform(get("/course"))
+                .andExpect(status().isForbidden());
     }
 
     private String loadFixture(String fileName) throws IOException {

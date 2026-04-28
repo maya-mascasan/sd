@@ -118,10 +118,33 @@ export class StudentCoursesComponent implements OnInit {
   enroll(course: Course): void {
     const personId = sessionStorage.getItem('person-id');
     if (!personId) return;
+
     this.enrolling.set(course.id);
+
     this.personService.enroll(personId, course.id).subscribe({
-      next: () => { this.enrolling.set(null); this.loadData(); },
-      error: () => this.enrolling.set(null)
+      next: (updatedPerson) => {
+        this.enrolling.set(null);
+
+        // Force the signal to update by creating a NEW array reference
+        this.allCourses.update(courses =>
+          courses.map(c => {
+            if (c.id === course.id) {
+              return {
+                ...c,
+                enrolledStudents: [...(c.enrolledStudents || []), updatedPerson]
+              };
+            }
+            return c;
+          })
+        );
+
+        // Trigger a data reload in the background to sync everything
+        this.loadData();
+      },
+      error: (err) => {
+        console.error('Enrollment failed', err);
+        this.enrolling.set(null);
+      }
     });
   }
 

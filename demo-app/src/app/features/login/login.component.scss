@@ -19,9 +19,31 @@
 
 form {
   display: grid;
-  gap: 0.75rem;
+  gap: 1.25rem; /* Increased gap for better breathing room */
 }
 
+.login-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.forgot-link {
+  /* This turns the tiny text into a larger "hit target" */
+  display: inline-block;
+  font-size: 0.875rem;
+  color: #005cbb;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 8px 12px; /* Makes it much easier to click */
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.forgot-link:hover {
+  background-color: rgba(0, 92, 187, 0.05); /* Subtle hover effect */
+  text-decoration: underline;
+}
 .full-width {
   width: 100%;
 }

@@ -10,6 +10,7 @@ import com.andrei.demo.repository.PersonRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.andrei.demo.util.PasswordUtil;
+import org.springframework.transaction.annotation.Transactional; // Add import
 
 import java.util.List;
 import java.util.Map;
@@ -123,14 +124,22 @@ public class PersonService {
                 () -> new IllegalStateException("Person with id " + uuid + " not found"));
     }
 
+    @Transactional // Add this!
     public Person enrollCourse(UUID personId, UUID courseId) throws ValidationException {
         Person person = getPersonById(personId);
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ValidationException("Course not found."));
-        person.getEnrolledCourses().add(course);
+
+        // Add the course to the person
+        if (!person.getEnrolledCourses().contains(course)) {
+            person.getEnrolledCourses().add(course);
+        }
+
+        // Save and return
         return personRepository.save(person);
     }
 
+    @Transactional // Add this too!
     public Person unenrollCourse(UUID personId, UUID courseId) throws ValidationException {
         Person person = getPersonById(personId);
         person.getEnrolledCourses().removeIf(c -> c.getId().equals(courseId));
