@@ -19,6 +19,7 @@ import { SubmissionService, Submission } from '../../services/submission.service
 import { Course } from '../../models/course.model';
 import { ComponentType } from '@angular/cdk/portal';
 import { StudentSubmitDialogComponent } from '../../components/student-submit-dialog/student-submit-dialog.component';
+import {PersonJson} from '../../models/person.model';
 
 @Component({
   selector: 'app-student-courses',
@@ -48,6 +49,7 @@ export class StudentCoursesComponent implements OnInit {
   readonly isLoading = signal(false);
   readonly enrolling = signal<string | null>(null);
   readonly searchQuery = signal('');
+  readonly enrolledCourseIds = signal<Set<string>>(new Set());
 
   private get studentId(): string {
     // Get person ID from backend by email
@@ -55,27 +57,16 @@ export class StudentCoursesComponent implements OnInit {
   }
 
   readonly enrolledCourses = computed(() => {
-    const currentUserEmail = this.loginStore.email();
-
-    // If we don't have an email yet, the student isn't "in" anything
-    if (!currentUserEmail) return [];
-
-    return this.allCourses().filter(course => {
-      // Use optional chaining (?.) to safely check the arrays
-      const inStudentsList = course.students?.some(s => s.email === currentUserEmail);
-      const inEnrolledList = course.enrolledStudents?.some(s => s.email === currentUserEmail);
-
-      return inStudentsList || inEnrolledList;
-    });
+    const ids = this.enrolledCourseIds();
+    return this.allCourses().filter(c => ids.has(c.id));
   });
 
-
-
+  // 3. Derive available courses
   readonly availableCourses = computed(() => {
     const query = this.searchQuery().toLowerCase();
-    const enrolled = this.enrolledCourses().map(c => c.id);
+    const ids = this.enrolledCourseIds();
     return this.allCourses()
-      .filter(c => !enrolled.includes(c.id))
+      .filter(c => !ids.has(c.id))
       .filter(c => c.title.toLowerCase().includes(query) ||
         c.department?.name?.toLowerCase().includes(query));
   });
@@ -84,26 +75,59 @@ export class StudentCoursesComponent implements OnInit {
     this.loadData();
   }
 
+  // 1. Update loadData to handle the 'courses' property
   loadData(): void {
     this.isLoading.set(true);
     this.courseService.getCourses().subscribe({
       next: courses => {
         this.allCourses.set(courses);
-        this.isLoading.set(false);
-        // Also load person to get enrolled courses properly
         const email = this.loginStore.email();
         if (email) {
           this.personService.getByEmail(email).subscribe({
             next: person => {
               sessionStorage.setItem('person-id', person.id);
+
+              // Cast to PersonJson to safely access the 'courses' property
+              const jsonPerson = person as unknown as PersonJson;
+
+              // Now TypeScript knows 'courses' exists and is a Course[]
+              const personCourses = jsonPerson.courses || person.enrolledCourses || [];
+              const ids = new Set(personCourses.map((c: Course) => c.id));
+
+              this.enrolledCourseIds.set(ids);
+
               this.submissionService.getByStudent(person.id).subscribe({
                 next: subs => this.mySubmissions.set(subs)
               });
-            }
+              this.isLoading.set(false);
+            },
+            error: () => this.isLoading.set(false)
           });
         }
       },
       error: () => this.isLoading.set(false)
+    });
+  }
+
+// 2. Update enroll to handle the 'courses' property in the response
+  enroll(course: Course): void {
+    const personId = sessionStorage.getItem('person-id');
+    if (!personId) return;
+    this.enrolling.set(course.id);
+
+    this.personService.enroll(personId, course.id).subscribe({
+      next: (updatedPerson) => {
+        this.enrolling.set(null);
+
+        // Do the same cast here
+        const jsonPerson = updatedPerson as unknown as PersonJson;
+
+        const personCourses = jsonPerson.courses || updatedPerson.enrolledCourses || [];
+        const ids = new Set(personCourses.map((c: Course) => c.id));
+
+        this.enrolledCourseIds.set(ids);
+      },
+      error: () => this.enrolling.set(null)
     });
   }
 
@@ -112,39 +136,6 @@ export class StudentCoursesComponent implements OnInit {
     this.assignments.set([]);
     this.assignmentService.getByCourse(course.id).subscribe({
       next: a => this.assignments.set(a)
-    });
-  }
-
-  enroll(course: Course): void {
-    const personId = sessionStorage.getItem('person-id');
-    if (!personId) return;
-
-    this.enrolling.set(course.id);
-
-    this.personService.enroll(personId, course.id).subscribe({
-      next: (updatedPerson) => {
-        this.enrolling.set(null);
-
-        // Force the signal to update by creating a NEW array reference
-        this.allCourses.update(courses =>
-          courses.map(c => {
-            if (c.id === course.id) {
-              return {
-                ...c,
-                enrolledStudents: [...(c.enrolledStudents || []), updatedPerson]
-              };
-            }
-            return c;
-          })
-        );
-
-        // Trigger a data reload in the background to sync everything
-        this.loadData();
-      },
-      error: (err) => {
-        console.error('Enrollment failed', err);
-        this.enrolling.set(null);
-      }
     });
   }
 

@@ -1,6 +1,7 @@
 package com.andrei.demo.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -31,10 +32,12 @@ public class Course {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "professor_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore // <--- Add this!
     private Person professor;
 
     @JsonIgnore
     @ManyToMany(mappedBy = "enrolledCourses", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("students") // Prevents the loop back to students
     private Set<Person> students = new HashSet<>();
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)

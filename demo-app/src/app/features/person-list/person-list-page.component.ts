@@ -10,8 +10,19 @@ import { PersonFormDialogComponent, PersonFormDialogData, PersonFormDialogResult
 import { PersonListStore } from './person-list.store';
 import { LoginStore } from '../login/login.store';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
-import {CreatePersonDto, Person, PersonJson, UpdatePersonDto} from '../../models/person.model';
+import {CreatePersonDto, Person, PersonJson} from '../../models/person.model';
 import {Course} from '../../models/course.model';
+
+// Replace the old definition with this
+export interface UpdatePersonDto {
+  name: string;
+  age: number;
+  email: string;
+  role: string;
+  password?: string;
+  courses: { id: string }[];
+}
+
 @Component({
   selector: 'app-person-list-page',
   imports: [MatTableModule, MatButtonModule, MatIconModule, MatDialogModule, MatToolbar, RouterLinkActive, RouterLink],
@@ -58,14 +69,26 @@ export class PersonListPageComponent {
       .afterClosed()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result: PersonFormDialogResult | undefined) => {
-        if (!result) return;
-        this.store.create(result as CreatePersonDto);
+        if (result) {
+          // Map the dialog result back to the DTO format the store expects
+          const dto: CreatePersonDto = {
+            name: result.name,
+            age: result.age,
+            email: result.email,
+            role: result.role,
+            password: result.password || '',
+            // FIX: Use 'courses' instead of 'enrolledCourseIds'
+            courses: result.courses
+          };
+          this.store.create(dto);
+        }
       });
   }
 
   protected openEditDialog(person: Person): void {
     if (this.isLoading()) return;
     const jsonPerson = person as unknown as PersonJson;
+
     this.dialog
       .open<PersonFormDialogComponent, PersonFormDialogData, PersonFormDialogResult>(
         PersonFormDialogComponent,
@@ -75,7 +98,8 @@ export class PersonListPageComponent {
             submitLabel: 'Save',
             initialValue: {
               ...person,
-              enrolledCourseIds: jsonPerson.courses?.map(c => c.id) ?? [] }
+              enrolledCourseIds: jsonPerson.courses?.map(c => c.id) ?? []
+            }
           }
         },
       )
@@ -84,7 +108,21 @@ export class PersonListPageComponent {
       .subscribe((result: PersonFormDialogResult | undefined) => {
         if (!result) return;
 
-        this.store.update(person.id, result as UpdatePersonDto);
+        // We explicitly create the payload using the typed interface
+        const updatePayload: UpdatePersonDto = {
+          name: result.name,
+          age: result.age,
+          email: result.email,
+          role: result.role,
+          courses: result.courses // This matches the {id: string}[] structure
+        };
+
+        // Add password only if it was actually provided in the result
+        if (result.password) {
+          updatePayload.password = result.password;
+        }
+
+        this.store.update(person.id, updatePayload);
       });
   }
 

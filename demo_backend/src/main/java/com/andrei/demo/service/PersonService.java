@@ -12,10 +12,7 @@ import org.springframework.stereotype.Service;
 import com.andrei.demo.util.PasswordUtil;
 import org.springframework.transaction.annotation.Transactional; // Add import
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @AllArgsConstructor
@@ -29,7 +26,6 @@ public class PersonService {
     }
 
     public Person addPerson(PersonCreateDTO personDTO) throws ValidationException {
-        // duplicate email
         if (personRepository.findByEmail(personDTO.getEmail()).isPresent()) {
             throw new ValidationException("A user with the email " + personDTO.getEmail() + " already exists.");
         }
@@ -38,39 +34,68 @@ public class PersonService {
         person.setName(personDTO.getName());
         person.setAge(personDTO.getAge());
         person.setEmail(personDTO.getEmail());
-        String hashedPassword = passwordUtil.hashPassword(personDTO.getPassword());
-        person.setPassword(hashedPassword);
+        person.setPassword(passwordUtil.hashPassword(personDTO.getPassword()));
+        person.setRole(personDTO.getRole() != null ? personDTO.getRole() : Role.admin);
 
-        if (personDTO.getRole() != null) {
-            person.setRole(personDTO.getRole());
-        } else {
-            person.setRole(Role.admin);
-        }
+        // FIX: Use the 'courses' objects from the DTO
+        if (personDTO.getCourses() != null && !personDTO.getCourses().isEmpty()) {
+            List<UUID> ids = personDTO.getCourses().stream()
+                    .map(Course::getId)
+                    .toList();
 
-        if (personDTO.getCourseIds() != null && !personDTO.getCourseIds().isEmpty()) {
-            List<Course> coursesToLink = courseRepository.findAllById(personDTO.getCourseIds());
-            person.getEnrolledCourses().addAll(coursesToLink);
+            List<Course> managedCourses = courseRepository.findAllById(ids);
+
+            // Handle Professor ownership for new accounts
+            if (person.getRole() == Role.professor) {
+                for (Course c : managedCourses) {
+                    c.setProfessor(person);
+                    courseRepository.save(c);
+                }
+            }
+
+            person.getEnrolledCourses().addAll(managedCourses);
         }
 
         return personRepository.save(person);
     }
 
+    @Transactional
     public Person updatePerson(UUID uuid, Person person) throws ValidationException {
         Person existingPerson = personRepository.findById(uuid)
-                .orElseThrow(() -> new ValidationException("Person with id " + uuid + " not found"));
+                .orElseThrow(() -> new ValidationException("Person not found"));
 
-        if (!existingPerson.getEmail().equals(person.getEmail()) &&
-                personRepository.findByEmail(person.getEmail()).isPresent()) {
-            throw new ValidationException("The email " + person.getEmail() + " is already taken by another user.");
-        }
-
+        // 1. Basic fields
         existingPerson.setName(person.getName());
         existingPerson.setAge(person.getAge());
         existingPerson.setEmail(person.getEmail());
-        String hashedPassword = passwordUtil.hashPassword(person.getPassword());
-        existingPerson.setPassword(hashedPassword);
-        if (person.getRole() != null) {
-            existingPerson.setRole(person.getRole());
+        existingPerson.setRole(person.getRole());
+
+        // 2. Password logic
+        if (person.getPassword() != null && !person.getPassword().isBlank()) {
+            existingPerson.setPassword(passwordUtil.hashPassword(person.getPassword()));
+        }
+
+        // 3. Collection Syncing (One single block)
+        existingPerson.getEnrolledCourses().clear();
+
+        if (person.getEnrolledCourses() != null && !person.getEnrolledCourses().isEmpty()) {
+            List<UUID> ids = person.getEnrolledCourses().stream()
+                    .map(Course::getId)
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            List<Course> managed = courseRepository.findAllById(ids);
+
+            // If the person is a professor, update the Course table ownership
+            if (existingPerson.getRole() == Role.professor) {
+                for (Course c : managed) {
+                    c.setProfessor(existingPerson);
+                    // We save the course to update the professor_id column
+                    courseRepository.save(c);
+                }
+            }
+
+            existingPerson.getEnrolledCourses().addAll(managed);
         }
 
         return personRepository.save(existingPerson);

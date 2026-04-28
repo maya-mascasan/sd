@@ -29,7 +29,8 @@ export interface PersonFormDialogResult {
   email: string;
   password?: string;
   role: string;
-  enrolledCourseIds: string[];
+  //enrolledCourseIds: string[];
+  courses: { id: string }[];
 }
 @Component({
   selector: 'app-person-form-dialog',
@@ -97,21 +98,23 @@ export class PersonFormDialogComponent implements OnInit {
 
     const raw = this.form.getRawValue();
 
+    // Create the base result object
     const result: PersonFormDialogResult = {
       name: raw.name as string,
       age: raw.age as number,
       email: raw.email as string,
       role: raw.role as string,
-      enrolledCourseIds: raw.enrolledCourseIds as string[] ?? []
+      courses: (raw.enrolledCourseIds as string[] ?? []).map(id => ({ id }))
     };
 
-    if (this.data.showPasswordField) {
-      result.password = raw.password as string;
+    // Add password only if required
+    if (this.data.showPasswordField && raw.password) {
+      result.password = raw.password;
     }
 
     this.dialogRef.close(result);
   }
-  protected cancel(): void {
-    this.dialogRef.close(undefined);
+
+  cancel() {
   }
 }

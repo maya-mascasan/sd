@@ -35,16 +35,28 @@ public class Person {
     @Column(name = "role", nullable = false)
     private Role role;
 
+// In Person.java
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "student_course",
             joinColumns = @JoinColumn(name = "person_id"),
             inverseJoinColumns = @JoinColumn(name = "course_id")
     )
-    @JsonIgnoreProperties("person")
-    @com.fasterxml.jackson.annotation.JsonProperty("courses")
-
+    @JsonIgnoreProperties("students") // Ignore the back-reference in Course
     private Set<Course> enrolledCourses = new HashSet<>();
+
+    // Add this explicit setter to catch the "courses" property from JSON
+    @com.fasterxml.jackson.annotation.JsonProperty("courses")
+    public void setEnrolledCourses(Set<Course> enrolledCourses) {
+        this.enrolledCourses = enrolledCourses;
+    }
+
+    // Add this to make sure it's serialized as "courses" too
+    @com.fasterxml.jackson.annotation.JsonProperty("courses")
+    public Set<Course> getEnrolledCourses() {
+        return enrolledCourses;
+    }
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Submission> submissions = new HashSet<>();

@@ -16,7 +16,7 @@ export interface CreatePersonDto {
   email: string;
   role: string;
   password?: string;
-  enrolledCourseIds: string[];
+  courses?: { id: string }[];
 }
 
 export type UpdatePersonDto = Partial<CreatePersonDto>

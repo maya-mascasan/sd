@@ -64,13 +64,14 @@ export class PersonListStore {
     const existing = this.persons().find((p) => p.id === id);
     if (!existing) return;
 
+    // Map to the format the Java Backend expects
     const payload: CreatePersonDto = {
       name: dto.name ?? existing.name,
       age: dto.age ?? existing.age,
       email: dto.email ?? existing.email,
       role: dto.role ?? existing.role,
-      password: existing.password,
-      enrolledCourseIds: dto.enrolledCourseIds ?? []
+      password: dto.password || '', // Backend handles empty string vs null
+      courses: dto.courses ?? []    // Use the new 'courses' field!
     };
 
     this.errorMsg.set('');
@@ -79,10 +80,11 @@ export class PersonListStore {
       .update(id, payload)
       .pipe(finalize(() => this.endRequest()))
       .subscribe({
-        next: (updated) =>
+        next: (updated) => {
           this.persons.update((list) =>
-            list.map((person) => (person.id === updated.id ? updated : person)),
-          ),
+            list.map((person) => (person.id === updated.id ? updated : person))
+          );
+        },
         error: (err: HttpErrorResponse) => {
           this.hasError.set(true);
           const errorData = err.error as Record<string, string>;
