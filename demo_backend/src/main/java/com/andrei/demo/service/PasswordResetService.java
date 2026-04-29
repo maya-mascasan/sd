@@ -27,8 +27,11 @@ public class PasswordResetService {
         personRepository.findByEmail(email)
                 .orElseThrow(() -> new ValidationException("No account found with email: " + email));
 
-        // Delete any existing token
-        tokenRepository.deleteByEmail(email);
+        // MANUALLY delete if exists
+        tokenRepository.findByEmail(email).ifPresent(tokenRepository::delete);
+
+        // Crucial: Flush the deletion to the DB before inserting the new one
+        tokenRepository.flush();
 
         String code = String.format("%06d", new Random().nextInt(999999));
 

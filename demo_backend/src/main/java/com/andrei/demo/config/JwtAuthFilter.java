@@ -27,19 +27,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
-        String method = request.getMethod();
+        String path = request.getServletPath(); // Use getServletPath() for consistency        String method = request.getMethod();
 
-        // 1. Handle CORS Preflight immediately
-        if ("OPTIONS".equalsIgnoreCase(method)) {
-            response.setStatus(HttpServletResponse.SC_OK);
+        // 1. Explicitly skip EVERYTHING for these paths
+        if (path.startsWith("/login") || path.startsWith("/password-reset")) {
+            filterChain.doFilter(request, response);
             return;
         }
 
-        // 2. Only skip the filter for endpoints that literally cannot have a token
-        // We removed the "/person" POST skip so that Admin-created persons are authenticated!
-        if ("/login".equals(path) || path.startsWith("/password-reset")) {
-            filterChain.doFilter(request, response);
+        // 2. Handle OPTIONS (CORS)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
             return;
         }
 
@@ -84,5 +82,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        // This tells Spring: "If the URL starts with these, don't look for a JWT"
+        return path.startsWith("/login") ||
+                path.startsWith("/auth/") ||
+                path.startsWith("/password-reset/");
     }
 }

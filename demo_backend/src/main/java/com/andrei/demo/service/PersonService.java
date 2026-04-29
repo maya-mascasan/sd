@@ -25,6 +25,7 @@ public class PersonService {
         return personRepository.findAll();
     }
 
+    @Transactional // Make sure this is added to the method!
     public Person addPerson(PersonCreateDTO personDTO) throws ValidationException {
         if (personRepository.findByEmail(personDTO.getEmail()).isPresent()) {
             throw new ValidationException("A user with the email " + personDTO.getEmail() + " already exists.");
@@ -37,7 +38,10 @@ public class PersonService {
         person.setPassword(passwordUtil.hashPassword(personDTO.getPassword()));
         person.setRole(personDTO.getRole() != null ? personDTO.getRole() : Role.admin);
 
-        // FIX: Use the 'courses' objects from the DTO
+        // 1. SAVE THE PERSON FIRST to generate the ID
+        person = personRepository.save(person);
+
+        // 2. NOW handle the courses
         if (personDTO.getCourses() != null && !personDTO.getCourses().isEmpty()) {
             List<UUID> ids = personDTO.getCourses().stream()
                     .map(Course::getId)
@@ -45,9 +49,9 @@ public class PersonService {
 
             List<Course> managedCourses = courseRepository.findAllById(ids);
 
-            // Handle Professor ownership for new accounts
             if (person.getRole() == Role.professor) {
                 for (Course c : managedCourses) {
+                    // Now 'person' is a persistent entity with an ID
                     c.setProfessor(person);
                     courseRepository.save(c);
                 }
@@ -56,6 +60,7 @@ public class PersonService {
             person.getEnrolledCourses().addAll(managedCourses);
         }
 
+        // 3. Final save to update the relationships
         return personRepository.save(person);
     }
 

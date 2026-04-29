@@ -30,8 +30,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 1. Public & Preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/password-reset/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/login").permitAll()
+                        .requestMatchers("/password-reset/**").permitAll()
+                        //.requestMatchers(HttpMethod.POST, "/login").permitAll()
+                        //.requestMatchers(HttpMethod.POST, "/password-reset/**").permitAll()
 
                         // 2. Student Enrollment (Must be BEFORE general person management)
                         .requestMatchers(HttpMethod.POST, "/person/*/enroll/*").hasRole("STUDENT")

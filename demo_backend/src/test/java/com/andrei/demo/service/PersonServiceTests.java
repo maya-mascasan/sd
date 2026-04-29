@@ -78,7 +78,7 @@ class PersonServiceTests {
         assertEquals("john@example.com", result.getEmail());
         assertEquals("hashed-password", result.getPassword());
         verify(passwordUtil, times(1)).hashPassword("password");
-        verify(personRepository, times(1)).save(any(Person.class));
+        verify(personRepository, times(2)).save(any(Person.class));
     }
 
     @Test
